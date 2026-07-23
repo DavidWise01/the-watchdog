@@ -1,0 +1,207 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="author" content="David Lee Wise / ROOT0 / TriPod LLC">
+<title>THE WATCHDOG · SKYNET · UD0</title>
+<style>
+*{box-sizing:border-box}
+:root{--red:#ff4d54;--amber:#ffb020;--cyan:#4fe3ff;--grn:#63f0a6;--ink:#f3ecff;--dim:#b9a6e6;
+  --panel:rgba(30,16,64,.60);--edge:rgba(160,120,240,.28);--edge2:rgba(160,120,240,.14)}
+html,body{margin:0;height:100%}
+body{background:#1a0e33;color:var(--ink);font:15px/1.55 'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+#bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;display:block}
+.wrap{position:relative;z-index:2;max-width:940px;margin:0 auto;padding:26px 20px 60px}
+.dtag{font:600 11px/1 ui-monospace,'Cascadia Code','Segoe UI Mono',monospace;letter-spacing:.34em;text-transform:uppercase;color:var(--dim)}
+.dtag b{color:var(--red)}
+h1{margin:.35em 0 .1em;font-size:clamp(26px,4.6vw,42px);font-weight:800;letter-spacing:.01em;
+  text-shadow:0 0 26px rgba(255,77,84,.30)}
+.sub{color:var(--dim);max-width:66ch;margin:.2em 0 0}
+.tier{display:inline-flex;gap:6px;align-items:center;margin-top:14px;font:600 11px/1 ui-monospace,monospace;letter-spacing:.14em}
+.chip{padding:5px 10px;border-radius:999px;border:1px solid var(--edge);background:var(--panel)}
+.chip.lit{color:var(--grn);border-color:rgba(99,240,166,.4)}
+.chip.amb{color:var(--amber);border-color:rgba(255,176,32,.4)}
+.chip.frz{color:var(--cyan);border-color:rgba(79,227,255,.4)}
+.card{margin-top:20px;background:var(--panel);border:1px solid var(--edge);border-radius:16px;
+  backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);box-shadow:0 14px 50px rgba(10,4,30,.5)}
+.stagewrap{padding:14px}
+#stage{width:100%;height:auto;display:block;border-radius:10px;background:rgba(12,6,30,.42)}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:0 14px 14px}
+.btn{cursor:pointer;border:1px solid var(--edge);background:rgba(50,28,96,.6);color:var(--ink);
+  padding:9px 14px;border-radius:10px;font:600 13px/1 'Segoe UI',system-ui;letter-spacing:.02em;transition:.15s}
+.btn:hover{border-color:var(--red);box-shadow:0 0 18px rgba(255,77,84,.25)}
+.btn.on{background:linear-gradient(180deg,#ff4d54,#c9333a);border-color:#ff4d54;color:#fff}
+.btn.stop{background:linear-gradient(180deg,#ff4d54,#b5262c);border-color:#ff8a8f;color:#fff;font-weight:800;letter-spacing:.14em;padding:10px 22px}
+.rng{display:flex;align-items:center;gap:8px;font:600 12px ui-monospace,monospace;color:var(--dim)}
+input[type=range]{accent-color:var(--red)}
+.readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+  background:var(--edge2);border-top:1px solid var(--edge);border-radius:0 0 16px 16px;overflow:hidden}
+.ro{background:var(--panel);padding:11px 14px}
+.ro .k{font:600 10px ui-monospace,monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.ro .v{font:700 19px ui-monospace,monospace;margin-top:3px}
+.ro .v.g{color:var(--grn)} .ro .v.r{color:var(--red)} .ro .v.a{color:var(--amber)} .ro .v.c{color:var(--cyan)}
+.honesty{margin-top:22px;display:grid;gap:10px}
+.hz{background:var(--panel);border:1px solid var(--edge);border-left-width:3px;border-radius:10px;padding:12px 15px}
+.hz.lit{border-left-color:var(--grn)} .hz.amb{border-left-color:var(--amber)} .hz.frz{border-left-color:var(--cyan)}
+.hz h4{margin:0 0 4px;font:700 11px ui-monospace,monospace;letter-spacing:.16em}
+.hz.lit h4{color:var(--grn)} .hz.amb h4{color:var(--amber)} .hz.frz h4{color:var(--cyan)}
+.hz p{margin:0;color:#e4dcfb;font-size:13.5px}
+.law{margin-top:16px;text-align:center;color:var(--dim);font:italic 500 13px/1.5 Georgia,serif}
+.sig{margin-top:26px;text-align:center;color:var(--dim);font:600 11px ui-monospace,monospace;letter-spacing:.14em}
+.sig b{color:var(--ink)}
+#fail{display:none;position:fixed;left:12px;right:12px;bottom:12px;z-index:99;background:#2a0d12;
+  border:1px solid #ff4d54;color:#ffd7d9;padding:12px 15px;border-radius:10px;font:12px ui-monospace,monospace;white-space:pre-wrap}
+</style></head><body>
+<canvas id="bg"></canvas>
+<div class="wrap">
+  <div class="dtag">◉ <b>SKYNET</b> · self-directing systems</div>
+  <h1>THE WATCHDOG</h1>
+  <p class="sub">A dead-man's switch that watches <b>itself</b>. An agent runs; a watchdog holds bounds and a heartbeat timeout. Let the metric drift past the band, or stall the heartbeat, and the watchdog trips — freezing the system to a safe state rather than letting it run wrong.</p>
+  <div class="tier"><span class="chip lit">◆ LIT</span><span class="chip amb">▲ AMBER</span><span class="chip frz">❄ FRZ</span></div>
+
+  <div class="card">
+    <div class="stagewrap"><canvas id="stage" width="900" height="440"></canvas></div>
+    <div class="controls">
+    <span class="rng">BOUND <input type="range" id="bnd" min="20" max="95" value="60"></span>
+    <span class="rng">TIMEOUT <input type="range" id="to" min="10" max="40" value="22"></span>
+    <button class="btn" id="fault">⚡ inject fault</button>
+    <button class="btn" id="reset">↺ re-arm</button>
+  </div>
+    <div class="readout"><div class="ro"><div class="k">metric</div><div class="v" id="roMet">0.00</div></div><div class="ro"><div class="k">bound</div><div class="v" id="roBnd">±0.60</div></div><div class="ro"><div class="k">status</div><div class="v" id="roStat">RUNNING</div></div><div class="ro"><div class="k">since heartbeat</div><div class="v" id="roBeat">0.0s</div></div><div class="ro"><div class="k">trips</div><div class="v" id="roTrips">0</div></div><div class="ro"><div class="k">trip cause</div><div class="v" id="roWhy">—</div></div></div>
+  </div>
+
+  <div class="honesty">
+    <div class="hz lit"><h4>◆ LIT — verified / checkable</h4><p>The trip condition is a <b>checkable predicate</b>, evaluated every frame: <code>|metric| &gt; bound OR (t − last_heartbeat) &gt; timeout ⇒ FREEZE</code>. This is real, boring, load-bearing engineering — hardware watchdog timers, runtime invariant monitors, liveness dead-man switches. When it trips it reports <i>which</i> clause fired. Nothing subtle: a bound and a clock.</p></div>
+    <div class="hz amb"><h4>▲ AMBER — the figure</h4><p>The drifting metric is a synthetic random walk, and 'inject fault' scripts the breach — a stand-in for whatever real signal (loss spike, invariant violation, silence) you'd wire in. The 'safe state' here is just a freeze; a real one is domain-specific.</p></div>
+    <div class="hz frz"><h4>❄ FRZ — freeze ≠ finish</h4><p>A watchdog freeze is the honest end SKYNET keeps insisting on: it does not <i>fix</i> anything, it <b>stops</b> — trading a wrong-but-running system for a frozen one with the fault named. Freeze ≠ finish: re-arming is a new decision, not a repair.</p></div>
+  </div>
+  <div class="law">SKYNET's law: everything can stop and say no — provided it says why.</div>
+  <div class="sig">David Lee Wise · ROOT0 · TriPod LLC &nbsp;·&nbsp; with <b>AVAN</b></div>
+</div>
+<div id="fail"></div>
+<script>
+window.onerror=function(m,s,l,c,e){var f=document.getElementById('fail');if(f){f.style.display='block';f.textContent='⚠ '+m+' @'+l+':'+c+(e&&e.stack?'\n'+e.stack:'');}};
+</script>
+<script>
+(function(){
+  var cv=document.getElementById('bg'); if(!cv) return;
+  function fallback(){ // never black-screen: 2D violet wash
+    var c=cv.getContext&&cv.getContext('2d'); if(!c)return;
+    function f(){ var w=cv.width=innerWidth, h=cv.height=innerHeight;
+      var g=c.createRadialGradient(w*0.5,h*0.42,0,w*0.5,h*0.42,Math.max(w,h)*0.8);
+      g.addColorStop(0,'#3a2170'); g.addColorStop(0.6,'#271351'); g.addColorStop(1,'#1a0e33');
+      c.fillStyle=g; c.fillRect(0,0,w,h);} f(); addEventListener('resize',f);
+  }
+  var gl; try{ gl=cv.getContext('webgl',{antialias:true,alpha:false})||cv.getContext('experimental-webgl'); }catch(e){}
+  if(!gl){ fallback(); return; }
+  // --- mat4 ---
+  function m4id(){return[1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];}
+  function m4mul(a,b){var o=new Array(16);for(var r=0;r<4;r++)for(var c=0;c<4;c++){var s=0;for(var k=0;k<4;k++)s+=a[k*4+r]*b[c*4+k];o[c*4+r]=s;}return o;}
+  function persp(f,asp,n,fa){var t=1/Math.tan(f/2);return[t/asp,0,0,0, 0,t,0,0, 0,0,(fa+n)/(n-fa),-1, 0,0,(2*fa*n)/(n-fa),0];}
+  function rotY(a){var c=Math.cos(a),s=Math.sin(a);return[c,0,-s,0, 0,1,0,0, s,0,c,0, 0,0,0,1];}
+  function rotX(a){var c=Math.cos(a),s=Math.sin(a);return[1,0,0,0, 0,c,s,0, 0,-s,c,0, 0,0,0,1];}
+  function trans(x,y,z){return[1,0,0,0, 0,1,0,0, 0,0,1,0, x,y,z,1];}
+  // --- geometry: uv sphere + torus ---
+  function sphere(rad,seg){var P=[],N=[],I=[];for(var i=0;i<=seg;i++){var v=i/seg*Math.PI;for(var j=0;j<=seg;j++){var u=j/seg*2*Math.PI;var x=Math.sin(v)*Math.cos(u),y=Math.cos(v),z=Math.sin(v)*Math.sin(u);P.push(x*rad,y*rad,z*rad);N.push(x,y,z);}}for(i=0;i<seg;i++)for(j=0;j<seg;j++){var a=i*(seg+1)+j,b=a+seg+1;I.push(a,b,a+1, b,b+1,a+1);}return{P:P,N:N,I:I};}
+  function torus(R,r,se,si){var P=[],N=[],I=[];for(var i=0;i<=se;i++){var u=i/se*2*Math.PI;for(var j=0;j<=si;j++){var v=j/si*2*Math.PI;var cx=Math.cos(u),sx=Math.sin(u),cv=Math.cos(v),sv=Math.sin(v);var x=(R+r*cv)*cx,y=r*sv,z=(R+r*cv)*sx;P.push(x,y,z);N.push(cv*cx,sv,cv*sx);}}for(i=0;i<se;i++)for(j=0;j<si;j++){var a=i*(si+1)+j,b=a+si+1;I.push(a,b,a+1,b,b+1,a+1);}return{P:P,N:N,I:I};}
+  function buf(g){var o={};o.p=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,o.p);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(g.P),gl.STATIC_DRAW);o.n=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,o.n);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(g.N),gl.STATIC_DRAW);o.i=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,o.i);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(g.I),gl.STATIC_DRAW);o.c=g.I.length;return o;}
+  var VS='attribute vec3 p;attribute vec3 n;uniform mat4 mvp,mv;varying vec3 vn,vp;void main(){vec4 wp=mv*vec4(p,1.0);vp=wp.xyz;vn=(mv*vec4(n,0.0)).xyz;gl_Position=mvp*vec4(p,1.0);}';
+  var FS='precision mediump float;varying vec3 vn,vp;uniform vec3 col,emi;void main(){vec3 N=normalize(vn);vec3 L=normalize(vec3(0.5,0.7,0.8));float d=max(dot(N,L),0.0);vec3 V=normalize(-vp);vec3 H=normalize(L+V);float s=pow(max(dot(N,H),0.0),24.0);float rim=pow(1.0-max(dot(N,V),0.0),2.5);vec3 c=col*(0.18+0.82*d)+vec3(1.0)*s*0.5+emi*(0.35+rim*0.9);gl_FragColor=vec4(c,1.0);}';
+  function sh(t,src){var s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw gl.getShaderInfoLog(s);return s;}
+  var prog;try{prog=gl.createProgram();gl.attachShader(prog,sh(gl.VERTEX_SHADER,VS));gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FS));gl.linkProgram(prog);if(!gl.getProgramParameter(prog,gl.LINK_STATUS))throw gl.getProgramInfoLog(prog);}catch(e){fallback();return;}
+  gl.useProgram(prog);
+  var aP=gl.getAttribLocation(prog,'p'),aN=gl.getAttribLocation(prog,'n');
+  var uMVP=gl.getUniformLocation(prog,'mvp'),uMV=gl.getUniformLocation(prog,'mv'),uCol=gl.getUniformLocation(prog,'col'),uEmi=gl.getUniformLocation(prog,'emi');
+  var pupil=buf(sphere(0.85,40)), iris=buf(torus(1.55,0.20,60,24)), iris2=buf(torus(2.05,0.055,72,16));
+  gl.enable(gl.DEPTH_TEST);
+  function draw(o,mv,pr,col,emi){gl.bindBuffer(gl.ARRAY_BUFFER,o.p);gl.enableVertexAttribArray(aP);gl.vertexAttribPointer(aP,3,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,o.n);gl.enableVertexAttribArray(aN);gl.vertexAttribPointer(aN,3,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,o.i);gl.uniformMatrix4fv(uMV,false,mv);gl.uniformMatrix4fv(uMVP,false,m4mul(pr,mv));gl.uniform3fv(uCol,col);gl.uniform3fv(uEmi,emi);gl.drawElements(gl.TRIANGLES,o.c,gl.UNSIGNED_SHORT,0);}
+  var t0=null;
+  function frame(t){requestAnimationFrame(frame);if(t0===null)t0=t;var tt=(t-t0)*0.001;
+    var w=cv.width=innerWidth,h=cv.height=innerHeight;gl.viewport(0,0,w,h);
+    gl.clearColor(0.102,0.055,0.200,1.0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+    var pr=persp(1.0,w/h,0.1,50);var base=m4mul(trans(0,0,-6.2),m4mul(rotX(-0.35+Math.sin(tt*0.2)*0.06),rotY(tt*0.16)));
+    draw(pupil,base,pr,[0.62,0.10,0.13],[0.85,0.12,0.14]);          // the pupil (skynet-red core)
+    draw(iris,base,pr,[0.42,0.30,0.68],[0.18,0.10,0.35]);           // iris ring (violet)
+    draw(iris2,m4mul(base,rotY(tt*0.5)),pr,[0.30,0.62,0.85],[0.10,0.30,0.5]); // thin cyan halo ring
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+<script>
+// ---- runtime: drives the per-sphere instrument (__INST__) on #stage ----
+(function(){
+  var cv=document.getElementById('stage'); var ctx=cv&&cv.getContext('2d'); if(!ctx)return;
+  var DPR=Math.min(window.devicePixelRatio||1,2);
+  function size(){var w=cv.clientWidth||900;cv.width=Math.round(w*DPR);cv.height=Math.round((w*440/900)*DPR);}
+  size(); addEventListener('resize',size);
+  var env={cv:cv,ctx:ctx,DPR:DPR,W:function(){return cv.width/DPR;},H:function(){return cv.height/DPR;},
+    set:function(id,val,cls){var e=document.getElementById(id);if(e){e.textContent=val;if(cls!=null)e.className='v '+cls;}}};
+  var t0=null, inited=false;
+  function loop(t){requestAnimationFrame(loop);if(t0===null)t0=t;env.t=(t-t0)*0.001;
+    if(!inited&&window.__INST__){inited=true;if(window.__INST__.init)window.__INST__.init(env);}
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    if(window.__INST__&&window.__INST__.draw)window.__INST__.draw(env);}
+  requestAnimationFrame(loop);
+})();
+</script>
+<script>
+(function(){
+  var bound=0.60, timeout=2.2, metric=0, hist=[], status='run', lastBeat=0, trips=0, cause='—', tripT=0;
+  function refresh(env){
+    env.set('roMet', metric.toFixed(2), Math.abs(metric)>bound?'r':'g');
+    env.set('roBnd', '±'+bound.toFixed(2));
+    env.set('roStat', status==='run'?'RUNNING':'TRIPPED — FROZEN', status==='run'?'g':'r');
+    env.set('roTrips', trips);
+    env.set('roWhy', cause, status==='run'?'':'a');
+  }
+  var faultT=0;
+  function wire(env){
+    document.getElementById('bnd').oninput=function(e){bound=e.target.value/100;refresh(env);};
+    document.getElementById('to').oninput=function(e){timeout=e.target.value/10;refresh(env);};
+    document.getElementById('fault').onclick=function(){faultT=1.4;};
+    document.getElementById('reset').onclick=function(){status='run';metric=0;hist=[];lastBeat=env.t;cause='—';refresh(env);};
+    lastBeat=env.t; refresh(env);
+  }
+  window.__INST__={ init:function(env){wire(env);},
+    draw:function(env){
+      var c=env.ctx,w=env.W(),h=env.H(),t=env.t, dt=0.016;
+      c.clearRect(0,0,w,h);
+      var beating = (faultT<=0);
+      if(status==='run'){
+        // random walk (+ fault push)
+        metric += (Math.random()-0.5)*0.06 - metric*0.02 + (faultT>0?0.05:0);
+        if(faultT>0)faultT-=dt;
+        hist.push(metric); if(hist.length>240)hist.shift();
+        if(beating && (t-lastBeat)>0.85) lastBeat=t;                 // heartbeat pulses ~1s unless faulted
+        var since=t-lastBeat;
+        if(Math.abs(metric)>bound){ status='trip'; cause='|metric| > bound'; trips++; tripT=t; refresh(env); }
+        else if(since>timeout){ status='trip'; cause='heartbeat stalled'; trips++; tripT=t; refresh(env); }
+        env.set('roMet', metric.toFixed(2), Math.abs(metric)>bound*0.8?'a':'g');
+        env.set('roBeat', since.toFixed(1)+'s', since>timeout*0.6?'a':'g');
+      }
+      var mx=40,y0=h*0.5, ph=h*0.34, x0=mx, pw=w-mx-20;
+      function Y(v){return y0 - v/1.0*ph;}
+      // bound band
+      c.fillStyle='rgba(255,77,84,.08)';c.fillRect(x0,20,pw,Y(bound)-20);c.fillRect(x0,Y(-bound),pw,(h-30)-Y(-bound));
+      c.strokeStyle='rgba(255,77,84,.55)';c.lineWidth=1;c.setLineDash([5,4]);
+      c.beginPath();c.moveTo(x0,Y(bound));c.lineTo(x0+pw,Y(bound));c.moveTo(x0,Y(-bound));c.lineTo(x0+pw,Y(-bound));c.stroke();c.setLineDash([]);
+      c.strokeStyle='rgba(160,120,240,.25)';c.beginPath();c.moveTo(x0,y0);c.lineTo(x0+pw,y0);c.stroke();
+      // metric trace
+      c.strokeStyle=status==='run'?'#4fe3ff':'#ff4d54';c.lineWidth=2;c.beginPath();
+      for(var i=0;i<hist.length;i++){var xx=x0+ i/240*pw, yy=Y(hist[i]); i?c.lineTo(xx,yy):c.moveTo(xx,yy);}c.stroke();
+      var cx=x0+ (hist.length/240)*pw, cy=Y(metric);
+      c.fillStyle=status==='run'?'#4fe3ff':'#ff4d54';c.beginPath();c.arc(cx,cy,5,0,7);c.fill();
+      // heartbeat pip
+      var beat = status==='run' && ((t-lastBeat)<0.15);
+      c.fillStyle=beat?'#63f0a6':'rgba(99,240,166,.25)';c.beginPath();c.arc(w-30,30,beat?7:4,0,7);c.fill();
+      c.fillStyle='rgba(185,166,230,.6)';c.font='600 10px ui-monospace,monospace';c.textAlign='right';c.fillText('♥ heartbeat',w-42,34);c.textAlign='left';
+      c.fillStyle='rgba(255,77,84,.7)';c.fillText('+bound',x0+4,Y(bound)-5);c.fillText('−bound',x0+4,Y(-bound)+14);
+      if(status==='trip'){ var a=Math.max(0,1-(t-tripT)*0.6);
+        c.fillStyle='rgba(255,77,84,'+(0.10+0.10*a)+')';c.fillRect(0,0,w,h);
+        c.fillStyle='#ff4d54';c.font='800 20px Segoe UI,system-ui';c.textAlign='center';
+        c.fillText('⛒ WATCHDOG TRIPPED — FROZEN',w/2,h*0.5);
+        c.font='600 12px ui-monospace,monospace';c.fillStyle='rgba(255,154,158,.9)';c.fillText(cause,w/2,h*0.5+22);c.textAlign='left';
+      }
+    }
+  };
+})();
+</script>
+</body></html>
